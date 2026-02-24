@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MLBB Tracker - Final Fixed</title>
+    <title>MLBB Diamond Tracker - Official Fix</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -23,7 +23,7 @@
 
 <div id="login-screen">
     <h2 style="color: var(--blue);">💎 Dia Seller Tracker 💎</h2>
-    <p id="status-text">အကောင့်ဝင်ရန် ခလုတ်ကို နှိပ်ပါ</p>
+    <p id="loading-text">ဆက်လုပ်ရန် Login ဝင်ပါ</p>
     <button class="btn" style="background:#db4437; color:white;" onclick="login()">Login with Google</button>
 </div>
 
@@ -32,7 +32,6 @@
         <span id="userEmail"></span>
         <span onclick="logout()" style="color:red; cursor:pointer;">Logout</span>
     </div>
-    
     <h3 style="color: var(--blue);">စိန်စာရင်း သွင်းရန်</h3>
     <input type="number" id="scRate" placeholder="Sc Rate (ဥပမာ 75.8)" value="75.8" oninput="updateBuyPrice()">
     <input type="date" id="saleDate">
@@ -40,19 +39,17 @@
     <input type="number" id="sellPrice" placeholder="ရောင်းဈေး (ကျပ်)">
     <input type="hidden" id="buyPrice">
     <button class="btn" onclick="addRecord()">Cloud သို့ သိမ်းမည်</button>
-
     <div class="dashboard">
         <div class="card"><h4>ယနေ့အမြတ်</h4><p id="totalProfit" style="color:var(--green)">0</p></div>
         <div class="card"><h4>ရာသက်ပန်စုစုပေါင်း</h4><p id="overallProfit" style="color:var(--green)">0</p></div>
     </div>
-    
     <div id="tableContent"></div>
 </div>
 
 <script>
-    // API Key ကို သေချာစစ်ဆေးပြီး ပြန်ထည့်ပေးထားပါသည်
+    // API Key ကို အမှန်ပြန်ပြင်ပေးထားပါသည်
     const firebaseConfig = {
-        apiKey: "AIzaSyAe7CMFx0eLZmJ6PGNsvLyAjtude_sbqvw", 
+        apiKey: "AIzaSyAe7CMFx0eLZmJ6PGNsvLyAjtude_s", 
         authDomain: "diamond-sales-fcb29.firebaseapp.com",
         projectId: "diamond-sales-fcb29",
         storageBucket: "diamond-sales-fcb29.firebasestorage.app",
@@ -74,19 +71,14 @@
     packages.forEach(p => { sel.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
 
     function login() { 
-        document.getElementById('status-text').innerText = "Google ဆီသို့ ကူးပြောင်းနေသည်...";
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithRedirect(provider); 
+        document.getElementById('loading-text').innerText = "Google ဆီသို့ ကူးပြောင်းနေသည်...";
+        auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()); 
     }
 
-    function logout() { auth.signOut().then(() => { location.reload(); }); }
+    function logout() { auth.signOut().then(() => location.reload()); }
 
-    // Redirect မှ ပြန်လာချိန် အောင်မြင်မှု ရှိမရှိ စစ်ဆေးခြင်း
-    auth.getRedirectResult().then((result) => {
-        if (result.user) { console.log("User logged in via redirect"); }
-    }).catch((error) => {
-        alert("Login Error: " + error.message);
-    });
+    // Redirect မှ ပြန်လာချိန် Login အောင်မြင်မှုကို ဖမ်းယူခြင်း
+    auth.getRedirectResult().catch(e => alert("Login Error: " + e.message));
 
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -110,25 +102,23 @@
         const date = document.getElementById('saleDate').value;
         const buy = parseFloat(document.getElementById('buyPrice').value);
         const sell = parseFloat(document.getElementById('sellPrice').value);
-        if(!date || !sell || isNaN(buy)) return alert("အချက်အလက်များ ပြည့်စုံအောင် ဖြည့်ပါ");
+        if(!date || !sell || isNaN(buy)) return alert("ဖြည့်ပါ");
 
         await db.collection("sales").add({
             userId: auth.currentUser.uid, date, pkg: sel.value, buy, sell, profit: sell - buy,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         document.getElementById('sellPrice').value = "";
-        alert("စာရင်းသွင်းပြီးပါပြီ");
+        alert("သိမ်းပြီးပါပြီ");
     }
 
     function loadData(uid) {
         db.collection("sales").where("userId", "==", uid).onSnapshot(snap => {
             let tProfit = 0, oProfit = 0, html = "";
             const today = new Date().toISOString().split('T')[0];
-            
             let items = [];
-            snap.forEach(doc => { items.push(doc.data()); });
+            snap.forEach(doc => items.push(doc.data()));
             items.sort((a, b) => b.date.localeCompare(a.date));
-
             items.forEach(s => {
                 oProfit += s.profit;
                 if(s.date === today) tProfit += s.profit;
