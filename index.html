@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLBB Diamond Tracker</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <style>
+        :root { --bg: #0b0e14; --card: #161b22; --blue: #00d2ff; --green: #39ff14; --text: #ffffff; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; text-align: center; }
+        .container { max-width: 500px; margin: auto; display: none; padding-top: 20px; }
+        #login-screen { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .btn { background: var(--blue); color: #000; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; box-sizing: border-box; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .card { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid #333; }
+        .list-item { background: #111; padding: 10px; border-radius: 5px; margin-bottom: 5px; text-align: left; font-size: 13px; border-left: 3px solid var(--blue); }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <h2 style="color: var(--blue);">💎 Dia Seller Tracker 💎</h2>
+    <p>ဆက်လုပ်ရန် Google နှင့် Login ဝင်ပါ</p>
+    <button class="btn" style="background:#db4437; color:white;" onclick="login()">Login with Google</button>
+</div>
+
+<div class="container" id="main-container">
+    <div style="display:flex; justify-content: space-between; font-size: 12px; color: #888;">
+        <span id="userEmail"></span>
+        <span onclick="logout()" style="color:red; cursor:pointer;">Logout</span>
+    </div>
+    
+    <h3 style="color: var(--blue);">စိန်စာရင်း သွင်းရန်</h3>
+    <input type="number" id="scRate" placeholder="Sc Rate (ဥပမာ 75.8)" value="75.8" oninput="updateBuyPrice()">
+    <input type="date" id="saleDate">
+    <select id="packageSelect" onchange="updateBuyPrice()"></select>
+    <input type="number" id="sellPrice" placeholder="ရောင်းဈေး (ကျပ်)">
+    <input type="hidden" id="buyPrice">
+    <button class="btn" onclick="addRecord()">Cloud သို့ သိမ်းမည်</button>
+
+    <div class="dashboard">
+        <div class="card"><h4>ယနေ့အမြတ်</h4><p id="totalProfit" style="color:var(--green)">0</p></div>
+        <div class="card"><h4>စုစုပေါင်း</h4><p id="overallProfit" style="color:var(--green)">0</p></div>
+    </div>
+    
+    <div id="tableContent"></div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAe7CMFx0eLZmJ6PGNsvLyAjtude_s", 
+        authDomain: "diamond-sales-fcb29.firebaseapp.com",
+        projectId: "diamond-sales-fcb29",
+        storageBucket: "diamond-sales-fcb29.firebasestorage.app",
+        messagingSenderId: "928447803826",
+        appId: "1:928447803826:web:c09e7fc3b50d544b2ab4ab"
+    };
+    
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    const packages = [
+        { name: "86 Dia", sc: 61.5 }, { name: "172 Dia", sc: 122 }, { name: "257 Dia", sc: 177.5 },
+        { name: "429 Dia", sc: 299.5 }, { name: "Weekly Pass", sc: 76 }
+    ];
+
+    const sel = document.getElementById('packageSelect');
+    packages.forEach(p => { sel.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
+
+    // Login Function (Error ပြပေးမည့် စနစ်ပါဝင်သည်)
+    function login() { 
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithRedirect(provider).catch(function(error) {
+            alert("Login မအောင်မြင်ပါ: " + error.message);
+        });
+    }
+
+    // Redirect ကနေ ပြန်အလာ Error ရှိမရှိ စစ်ဆေးခြင်း
+    auth.getRedirectResult().catch(function(error) {
+        alert("Authentication Error: " + error.message);
+    });
+
+    function logout() { auth.signOut(); }
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-container').style.display = 'block';
+            document.getElementById('userEmail').innerText = user.email;
+            loadData(user.uid);
+        } else {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('main-container').style.display = 'none';
+        }
+    });
+
+    function updateBuyPrice() {
+        const rate = parseFloat(document.getElementById('scRate').value) || 0;
+        const pkg = packages.find(p => p.name === sel.value);
+        if(pkg) document.getElementById('buyPrice').value = Math.round(pkg.sc * rate);
+    }
+
+    updateBuyPrice(); 
+
+    async function addRecord() {
+        const date = document.getElementById('saleDate').value;
+        const buy = parseFloat(document.getElementById('buyPrice').value);
+        const sell = parseFloat(document.getElementById('sellPrice').value);
+        
+        if(!date || !sell || isNaN(buy) || buy === 0) return alert("အချက်အလက်များကို ပြည့်စုံမှန်ကန်စွာ ဖြည့်ပါ");
+
+        await db.collection("sales").add({
+            userId: auth.currentUser.uid, 
+            date, 
+            pkg: sel.value, 
+            buy, 
+            sell, 
+            profit: sell - buy,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        document.getElementById('sellPrice').value = "";
+        alert("စာရင်းသွင်းပြီးပါပြီ");
+    }
+
+    function loadData(uid) {
+        db.collection("sales").where("userId", "==", uid).onSnapshot(snap => {
+            let tProfit = 0, oProfit = 0, html = "";
+            
+            const d = new Date();
+            const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            
+            let records = [];
+            snap.forEach(doc => { records.push(doc.data()); });
+
+            records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            records.forEach(s => {
+                oProfit += s.profit;
+                if(s.date === today) tProfit += s.profit;
+                html += `<div class="list-item">📅 ${s.date} | 💎 ${s.pkg}<br>💰 အမြတ်: ${s.profit.toLocaleString()} ကျပ်</div>`;
+            });
+            
+            document.getElementById('totalProfit').innerText = tProfit.toLocaleString();
+            document.getElementById('overallProfit').innerText = oProfit.toLocaleString();
+            document.getElementById('tableContent').innerHTML = html;
+        });
+    }
+    
+    document.getElementById('saleDate').valueAsDate = new Date();
+</script>
+</body>
+</html>
