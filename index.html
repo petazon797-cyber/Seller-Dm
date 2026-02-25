@@ -3,134 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MLBB Diamond Tracker - Official Fix</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <title>MLBB & MONEY PRO V10 (DAILY DASHBOARD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --bg: #0b0e14; --card: #161b22; --blue: #00d2ff; --green: #39ff14; --text: #ffffff; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; text-align: center; }
-        .container { max-width: 500px; margin: auto; display: none; padding-top: 20px; }
-        #login-screen { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .btn { background: var(--blue); color: #000; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        input, select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; box-sizing: border-box; background: white; color: black; }
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .card { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid #333; }
-        .list-item { background: #111; padding: 10px; border-radius: 5px; margin-bottom: 5px; text-align: left; font-size: 13px; border-left: 3px solid var(--blue); }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Poppins', sans-serif; }
+        body { background: #0a0f1e; color: #e0e0e0; min-height: 100vh; padding: 15px; }
+        
+        /* Touch Animations */
+        .price-card { 
+            background: #111827; border: 2px solid #4b5563; border-radius: 15px; padding: 15px 10px; 
+            cursor: pointer; text-align: center; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+        .price-card:active { transform: scale(0.85); border-color: #ffd700; box-shadow: 0 0 20px #ffd700; }
+        .price-card.selected { border-color: #ffd700; background: #1e293b; box-shadow: 0 0 25px rgba(255, 215, 0, 0.4); }
+
+        .btn-touch { transition: all 0.1s ease; cursor: pointer; }
+        .btn-touch:active { transform: scale(0.92) translateY(5px); filter: brightness(1.3); }
+
+        .card { background: #162033; padding: 25px; border-radius: 20px; border: 1px solid #334155; margin-bottom: 20px; }
+        input, select { background: #0a0f1e; border: 2px solid #334155; color: white; padding: 18px !important; border-radius: 12px; width: 100%; outline: none; font-size: 18px !important; }
+        input:focus { border-color: #ffd700; }
+
+        .dashboard-display { 
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
+            border: 2px solid #ffd700; border-radius: 20px; padding: 20px; 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; 
+        }
+        .dash-item h4 { font-size: 16px; font-weight: 900; }
+
+        .tab-btn { flex: 1; padding: 18px; border-radius: 15px; font-weight: 900; background: #1e2a3a; color: #fff; transition: 0.4s; }
+        .tab-btn.active.diamond-tab { background: #fbbf24; color: #000; box-shadow: 0 0 20px #fbbf24; }
+        .tab-btn.active.money-tab { background: #0ea5e9; color: #fff; box-shadow: 0 0 20px #0ea5e9; }
+        
+        .header { background: #1e2a3a; border-radius: 20px; padding: 20px; margin-bottom: 20px; border-bottom: 4px solid #fbbf24; text-align: center; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .delete-btn { color: #ef4444; background: #7f1d1d40; padding: 5px 12px; border-radius: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
+    <div class="max-w-6xl mx-auto">
+        <div class="header">
+            <h1 class="text-xl font-black text-yellow-500 tracking-widest uppercase">💎 MLBB + MONEY PRO V10 💰</h1>
+        </div>
 
-<div id="login-screen">
-    <h2 style="color: var(--blue);">💎 Dia Seller Tracker 💎</h2>
-    <p id="loading-text">ဆက်လုပ်ရန် Login ဝင်ပါ</p>
-    <button class="btn" style="background:#db4437; color:white;" onclick="login()">Login with Google</button>
-</div>
+        <div class="flex gap-3 mb-6">
+            <button class="tab-btn diamond-tab active btn-touch" onclick="switchTab('diamond')">DIAMOND SALE</button>
+            <button class="tab-btn money-tab btn-touch" onclick="switchTab('money')">MONEY TRANSFER</button>
+        </div>
 
-<div class="container" id="main-container">
-    <div style="display:flex; justify-content: space-between; font-size: 12px; color: #888;">
-        <span id="userEmail"></span>
-        <span onclick="logout()" style="color:red; cursor:pointer;">Logout</span>
+        <div id="diamondTab" class="tab-content active">
+            <div class="dashboard-display mb-6 shadow-2xl">
+                <div class="dash-item"><p class="text-[9px] text-gray-400">ယနေ့ ဝယ်ရင်း</p><h4 id="dashCost" class="text-white">0</h4></div>
+                <div class="dash-item"><p class="text-[9px] text-gray-400">ယနေ့ ရောင်းရငွေ</p><h4 id="dashSell" class="text-cyan-400">0</h4></div>
+                <div class="dash-item"><p class="text-[9px] text-gray-400">ယနေ့ အမြတ်</p><h4 id="dashProfit" class="text-green-400">0</h4></div>
+            </div>
+
+            <div class="card flex justify-between items-center border-l-8 border-yellow-500">
+                <span class="text-xl font-black text-yellow-500 uppercase">S.C RATE</span>
+                <input type="number" id="scRate" value="75.5" step="0.1" class="w-32 text-center font-bold text-2xl">
+            </div>
+
+            <div id="priceGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8"></div>
+
+            <div class="card">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <input type="date" id="saleDate">
+                    <input type="text" id="custName" placeholder="Customer Name">
+                    <input type="number" id="buyPrice" placeholder="ဝယ်ရင်းဈေး" readonly class="bg-gray-800 text-yellow-500">
+                    <input type="number" id="sellPrice" placeholder="ရောင်းဈေး ရိုက်ထည့်ပါ">
+                </div>
+                <input type="hidden" id="selectedPkg">
+                <button onclick="addDiamond()" class="btn-touch w-full p-5 bg-yellow-500 text-black font-black text-xl rounded-xl shadow-lg">💾 စာရင်းမှတ်တမ်း သိမ်းမည်</button>
+            </div>
+
+            <input type="text" id="dSearch" oninput="renderD()" placeholder="🔍 Diamond စာရင်းရှာရန်..." class="mb-4">
+            <div class="card overflow-x-auto !p-0"><table class="w-full text-left text-sm"><thead class="bg-gray-900 text-yellow-500"><tr><th class="p-4">နေ့စွဲ</th><th class="p-4">နာမည်</th><th class="p-4">Package</th><th class="p-4">အမြတ်</th><th class="p-4"></th></tr></thead><tbody id="dTableBody"></tbody></table></div>
+        </div>
+
+        <div id="moneyTab" class="tab-content">
+            <div class="card text-center border-l-8 border-cyan-500 mb-6"><p class="text-gray-400 font-bold text-xs">Today Service Fee</p><h2 id="mDailyTotal" class="text-5xl font-black text-green-400">0</h2></div>
+            <div class="flex gap-3 mb-6"><button id="btnKPay" onclick="setSvc('KPay')" class="flex-1 p-5 rounded-xl font-black bg-blue-600 border-2 border-cyan-300 btn-touch">K PAY</button><button id="btnWave" onclick="setSvc('WavePay')" class="flex-1 p-5 rounded-xl font-black bg-slate-800 btn-touch">WAVE PAY</button></div>
+            <div class="card"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><input type="text" id="mCustName" placeholder="Customer Name"><input type="number" id="mAmt" oninput="calcMoney()" placeholder="ပမာဏ (Ks)"><input type="number" id="mFee" placeholder="ဝန်ဆောင်ခ" class="text-green-400 font-black"></div><button onclick="saveMoney()" id="mSaveBtn" class="btn-touch w-full p-5 bg-blue-600 text-white font-black text-xl rounded-xl shadow-lg">💰 စာရင်းသွင်းမည်</button></div>
+            <input type="text" id="mSearch" oninput="renderM()" placeholder="🔍 Money ရှာရန်..." class="mb-4">
+            <div class="card overflow-x-auto !p-0"><table class="w-full text-left text-[11px]"><thead class="bg-gray-900 text-cyan-400"><tr><th class="p-4">Date / Time</th><th class="p-4">Customer</th><th class="p-4">Svc</th><th class="p-4">Fee</th><th class="p-4"></th></tr></thead><tbody id="mTableBody"></tbody></table></div>
+        </div>
     </div>
-    <h3 style="color: var(--blue);">စိန်စာရင်း သွင်းရန်</h3>
-    <input type="number" id="scRate" placeholder="Sc Rate (ဥပမာ 75.8)" value="75.8" oninput="updateBuyPrice()">
-    <input type="date" id="saleDate">
-    <select id="packageSelect" onchange="updateBuyPrice()"></select>
-    <input type="number" id="sellPrice" placeholder="ရောင်းဈေး (ကျပ်)">
-    <input type="hidden" id="buyPrice">
-    <button class="btn" onclick="addRecord()">Cloud သို့ သိမ်းမည်</button>
-    <div class="dashboard">
-        <div class="card"><h4>ယနေ့အမြတ်</h4><p id="totalProfit" style="color:var(--green)">0</p></div>
-        <div class="card"><h4>ရာသက်ပန်စုစုပေါင်း</h4><p id="overallProfit" style="color:var(--green)">0</p></div>
-    </div>
-    <div id="tableContent"></div>
-</div>
 
-<script>
-    // API Key ကို အမှန်ပြန်ပြင်ပေးထားပါသည်
-    const firebaseConfig = {
-        apiKey: "AIzaSyAe7CMFx0eLZmJ6PGNsvLyAjtude_s", 
-        authDomain: "diamond-sales-fcb29.firebaseapp.com",
-        projectId: "diamond-sales-fcb29",
-        storageBucket: "diamond-sales-fcb29.firebasestorage.app",
-        messagingSenderId: "928447803826",
-        appId: "1:928447803826:web:c09e7fc3b50d544b2ab4ab"
-    };
-    
-    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-    const db = firebase.firestore();
-    const auth = firebase.auth();
+    <script>
+        let dSales = JSON.parse(localStorage.getItem('d_pro_v10')) || [];
+        let mSales = JSON.parse(localStorage.getItem('m_pro_v10')) || [];
+        let curSvc = 'KPay';
 
-    const packages = [
-        { name: "86 Dia", sc: 61.5 }, { name: "172 Dia", sc: 122 }, { name: "257 Dia", sc: 177.5 },
-        { name: "343 Dia", sc: 239 }, { name: "429 Dia", sc: 299.5 }, { name: "514 Dia", sc: 355 },
-        { name: "Weekly Pass", sc: 76 }
-    ];
+        const packs = [
+            { n: "2X 50+50", s: 39 }, { n: "2X 150+150", s: 116.9 }, { n: "2X 250+250", s: 187.5 }, { n: "2X 500+500", s: 385 },
+            { n: "86 Dia", s: 61.5 }, { n: "172 Dia", s: 122 }, { n: "257 Dia", s: 177.5 }, { n: "343 Dia", s: 239 },
+            { n: "429 Dia", s: 299.5 }, { n: "514 Dia", s: 355 }, { n: "600 Dia", s: 416.5 }, { n: "706 Dia", s: 480 },
+            { n: "878 Dia", s: 602 }, { n: "1050 Dia", s: 724 }, { n: "2195 Dia", s: 1453 }, { n: "3688 Dia", s: 2424 },
+            { n: "5532 Dia", s: 3660 }, { n: "9288 Dia", s: 6079 }, { n: "Weekly Pass", s: 76 }, { n: "Twilight Pass", s: 402.5 }
+        ];
 
-    const sel = document.getElementById('packageSelect');
-    packages.forEach(p => { sel.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
-
-    function login() { 
-        document.getElementById('loading-text').innerText = "Google ဆီသို့ ကူးပြောင်းနေသည်...";
-        auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()); 
-    }
-
-    function logout() { auth.signOut().then(() => location.reload()); }
-
-    // Redirect မှ ပြန်လာချိန် Login အောင်မြင်မှုကို ဖမ်းယူခြင်း
-    auth.getRedirectResult().catch(e => alert("Login Error: " + e.message));
-
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-container').style.display = 'block';
-            document.getElementById('userEmail').innerText = user.email;
-            loadData(user.uid);
-        } else {
-            document.getElementById('login-screen').style.display = 'flex';
-            document.getElementById('main-container').style.display = 'none';
+        function switchTab(t) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector('.'+t+'-tab').classList.add('active');
+            document.getElementById(t+'Tab').classList.add('active');
         }
-    });
 
-    function updateBuyPrice() {
-        const rate = parseFloat(document.getElementById('scRate').value) || 0;
-        const pkg = packages.find(p => p.name === sel.value);
-        if(pkg) document.getElementById('buyPrice').value = Math.round(pkg.sc * rate);
-    }
+        function init() {
+            document.getElementById('saleDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('scRate').oninput = updateGrid;
+            updateGrid(); renderD(); renderM();
+        }
 
-    async function addRecord() {
-        const date = document.getElementById('saleDate').value;
-        const buy = parseFloat(document.getElementById('buyPrice').value);
-        const sell = parseFloat(document.getElementById('sellPrice').value);
-        if(!date || !sell || isNaN(buy)) return alert("ဖြည့်ပါ");
-
-        await db.collection("sales").add({
-            userId: auth.currentUser.uid, date, pkg: sel.value, buy, sell, profit: sell - buy,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        document.getElementById('sellPrice').value = "";
-        alert("သိမ်းပြီးပါပြီ");
-    }
-
-    function loadData(uid) {
-        db.collection("sales").where("userId", "==", uid).onSnapshot(snap => {
-            let tProfit = 0, oProfit = 0, html = "";
-            const today = new Date().toISOString().split('T')[0];
-            let items = [];
-            snap.forEach(doc => items.push(doc.data()));
-            items.sort((a, b) => b.date.localeCompare(a.date));
-            items.forEach(s => {
-                oProfit += s.profit;
-                if(s.date === today) tProfit += s.profit;
-                html += `<div class="list-item">📅 ${s.date} | 💎 ${s.pkg}<br>💰 အမြတ်: ${s.profit.toLocaleString()} ကျပ်</div>`;
+        function updateGrid() {
+            const g = document.getElementById('priceGrid');
+            const r = parseFloat(document.getElementById('scRate').value) || 0;
+            g.innerHTML = "";
+            packs.forEach(p => {
+                const cost = Math.round(p.s * r);
+                const d = document.createElement('div');
+                d.className = "price-card btn-touch";
+                d.innerHTML = `<div class="text-yellow-500 font-bold">${p.n}</div><div class="text-white text-sm">${cost.toLocaleString()} Ks</div>`;
+                d.onclick = function() {
+                    document.querySelectorAll('.price-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    document.getElementById('selectedPkg').value = p.n;
+                    document.getElementById('buyPrice').value = cost;
+                    document.getElementById('sellPrice').value = "";
+                };
+                g.appendChild(d);
             });
-            document.getElementById('totalProfit').innerText = tProfit.toLocaleString();
-            document.getElementById('overallProfit').innerText = oProfit.toLocaleString();
-            document.getElementById('tableContent').innerHTML = html;
-        });
-    }
-    document.getElementById('saleDate').valueAsDate = new Date();
-    updateBuyPrice();
-</script>
+        }
+
+        function addDiamond() {
+            const b = parseInt(document.getElementById('buyPrice').value);
+            const s = parseInt(document.getElementById('sellPrice').value);
+            if(!b || !s) return alert("Package ရွေးပြီး ရောင်းဈေးထည့်ပါ");
+            dSales.unshift({ id: Date.now(), date: document.getElementById('saleDate').value, name: document.getElementById('custName').value || "General", pkg: document.getElementById('selectedPkg').value, b, s, p: s-b });
+            localStorage.setItem('d_pro_v10', JSON.stringify(dSales));
+            renderD();
+            document.getElementById('sellPrice').value = "";
+            document.getElementById('custName').value = "";
+            document.querySelectorAll('.price-card').forEach(c => c.classList.remove('selected'));
+        }
+
+        function renderD() {
+            const b = document.getElementById('dTableBody'); b.innerHTML = "";
+            const q = document.getElementById('dSearch').value.toLowerCase();
+            const today = new Date().toISOString().split('T')[0];
+            
+            let dailyCost = 0, dailySell = 0, dailyProfit = 0;
+
+            dSales.filter(x => x.name.toLowerCase().includes(q) || x.date.includes(q)).forEach(s => {
+                // Today's summary calculation
+                if (s.date === today) {
+                    dailyCost += s.b;
+                    dailySell += s.s;
+                    dailyProfit += s.p;
+                }
+                
+                b.innerHTML += `<tr class="border-b border-gray-800"><td class="p-4">${s.date}</td><td class="p-4 text-cyan-400 font-bold">${s.name}</td><td class="p-4">${s.pkg}</td><td class="p-4 text-green-400 font-black">+${s.p.toLocaleString()}</td><td class="p-4"><button onclick="delD(${s.id})" class="delete-btn btn-touch">X</button></td></tr>`;
+            });
+
+            // Update Dashboard with today's total
+            document.getElementById('dashCost').innerText = dailyCost.toLocaleString();
+            document.getElementById('dashSell').innerText = dailySell.toLocaleString();
+            document.getElementById('dashProfit').innerText = dailyProfit.toLocaleString();
+        }
+
+        function delD(id) { if(confirm("ဖျက်မှာလား?")) { dSales = dSales.filter(x=>x.id!==id); localStorage.setItem('d_pro_v10', JSON.stringify(dSales)); renderD(); } }
+
+        function calcMoney() {
+            const a = parseFloat(document.getElementById('mAmt').value) || 0;
+            let f = 0;
+            if (a >= 5000 && a <= 50000) f = (a === 5000) ? 100 : Math.floor(a/10000)*100;
+            else if (a > 50000 && a <= 100000) f = 700;
+            else if (a > 100000 && a <= 200000) f = 1000;
+            else if (a > 200000 && a <= 300000) f = 2000;
+            else if (a > 300000 && a <= 400000) f = 3000;
+            else if (a > 400000 && a <= 500000) f = 4000;
+            else if (a > 500000 && a <= 600000) f = 5000;
+            else if (a > 600000 && a <= 700000) f = 6000;
+            else if (a > 700000 && a <= 800000) f = 6500;
+            else if (a > 800000 && a <= 900000) f = 7000;
+            else if (a > 900000 && a <= 1000000) f = 8000;
+            if (a === 50000) f = 500;
+            document.getElementById('mFee').value = f;
+        }
+
+        function setSvc(s) {
+            curSvc = s;
+            document.getElementById('btnKPay').className = s==='KPay' ? "flex-1 p-5 rounded-xl font-black bg-blue-600 border-2 border-cyan-300 btn-touch" : "flex-1 p-5 rounded-xl font-black bg-slate-800 btn-touch";
+            document.getElementById('btnWave').className = s==='WavePay' ? "flex-1 p-5 rounded-xl font-black bg-orange-500 border-2 border-yellow-300 btn-touch" : "flex-1 p-5 rounded-xl font-black bg-slate-800 btn-touch";
+        }
+
+        function saveMoney() {
+            const a = document.getElementById('mAmt').value; if(!a || a <= 0) return;
+            const now = new Date();
+            const dt = now.toLocaleDateString() + " | " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            mSales.unshift({ id: Date.now(), dt, dateOnly: now.toISOString().split('T')[0], name: document.getElementById('mCustName').value || "General", svc: curSvc, fee: parseInt(document.getElementById('mFee').value) });
+            localStorage.setItem('m_pro_v10', JSON.stringify(mSales));
+            renderM();
+            document.getElementById('mAmt').value = "";
+            document.getElementById('mCustName').value = "";
+        }
+
+        function renderM() {
+            const b = document.getElementById('mTableBody'); b.innerHTML = "";
+            const q = document.getElementById('mSearch').value.toLowerCase();
+            let t = 0; const today = new Date().toISOString().split('T')[0];
+            mSales.filter(x => x.name.toLowerCase().includes(q) || x.dt.includes(q)).forEach(r => {
+                if(r.dateOnly === today) t += r.fee;
+                b.innerHTML += `<tr class="border-b border-gray-800"><td class="p-4">${r.dt}</td><td class="p-4 text-yellow-500 font-bold">${r.name}</td><td class="p-4">${r.svc}</td><td class="p-4 text-green-400 font-bold">${r.fee.toLocaleString()}</td><td class="p-4"><button onclick="delM(${r.id})" class="delete-btn btn-touch">X</button></td></tr>`;
+            });
+            document.getElementById('mDailyTotal').innerText = t.toLocaleString();
+        }
+
+        function delM(id) { if(confirm("ဖျက်မှာလား?")) { mSales = mSales.filter(x=>x.id!==id); localStorage.setItem('m_pro_v10', JSON.stringify(mSales)); renderM(); } }
+
+        window.onload = init;
+    </script>
 </body>
 </html>
